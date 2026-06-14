@@ -4,8 +4,8 @@ import { useAuth } from '../lib/auth';
 
 const NAV = [
   { to: '/produtos', label: 'Produtos', icon: '🏷️' },
+  { to: '/estoque', label: 'Estoque', icon: '📦' },
   { to: '#', label: 'Vender', icon: '🛒', breve: true },
-  { to: '#', label: 'Estoque', icon: '📦', breve: true },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {

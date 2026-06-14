@@ -4,6 +4,8 @@ import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
 import { Produtos } from './pages/Produtos';
 import { NovoProduto } from './pages/NovoProduto';
+import { Estoque } from './pages/Estoque';
+import { EntradaEstoque } from './pages/EntradaEstoque';
 
 export function App() {
   const { logado } = useAuth();
@@ -22,6 +24,8 @@ export function App() {
       <Routes>
         <Route path="/produtos" element={<Produtos />} />
         <Route path="/produtos/novo" element={<NovoProduto />} />
+        <Route path="/estoque" element={<Estoque />} />
+        <Route path="/estoque/entrada" element={<EntradaEstoque />} />
         <Route path="*" element={<Navigate to="/produtos" replace />} />
       </Routes>
     </Layout>

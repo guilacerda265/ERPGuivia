@@ -116,3 +116,25 @@ export const criarVendaSchema = z.object({
   permitirSemEstoque: z.boolean().default(false),
 });
 export type CriarVenda = z.infer<typeof criarVendaSchema>;
+
+// ----------------------- fornecedor / entrada de estoque -----------------------
+export const criarFornecedorSchema = z.object({
+  nome: z.string().min(1, 'Informe o fornecedor'),
+  documento: z.string().optional(),
+  contato: z.string().optional(),
+});
+export type CriarFornecedor = z.infer<typeof criarFornecedorSchema>;
+
+export const itemEntradaSchema = z.object({
+  variacaoId: z.string().uuid(),
+  quantidade: z.number().int().positive(),
+  custoUnitarioCentavos: centavos.default(0),
+});
+
+export const criarEntradaSchema = z.object({
+  fornecedorId: z.string().uuid().optional(),
+  numeroNota: z.string().optional(),
+  observacao: z.string().optional(),
+  itens: z.array(itemEntradaSchema).min(1, 'Informe ao menos um item'),
+});
+export type CriarEntrada = z.infer<typeof criarEntradaSchema>;
