@@ -1,0 +1,475 @@
+// =============================================================================
+// Schema do domínio — ERP Moda (Onda 1)
+// Tradução de arquitetura-de-dominio.md (§3 núcleo + §6 extensões da Onda 1).
+// Princípios cravados aqui:
+//   A1 multi-tenant por linha: `tenantId` em tudo (RLS aplicada por migração SQL).
+//   A2 estoque/caixa são LEDGERS: MovimentoEstoque/LancamentoCaixa = verdade;
+//      SaldoEstoque = cache materializado (= Σ movimentos).
+//   A3 venda IMUTÁVEL: cancelar = estornar (status + movimentos de reversão).
+//   A4 snapshot na transação: ItemVenda copia preço/nome/cor/tamanho.
+//   A5 UUID v7 · A6 dinheiro em centavos (Int) · A8 sem hard-delete (status).
+// Onda 2/3 (crediário, troca/devolução, comissão, emissão fiscal) entram em
+// migrações futuras — ver §6 do doc de domínio.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------- enums -----------------------------
+enum Papel {
+  DONO
+  VENDEDOR
+}
+
+enum TipoModa {
+  CALCADO
+  ROUPA
+  ACESSORIO
+}
+
+enum RegimeTributario {
+  SIMPLES_NACIONAL
+  LUCRO_PRESUMIDO
+  LUCRO_REAL
+}
+
+enum TipoMovimento {
+  ENTRADA
+  SAIDA
+  VENDA
+  ESTORNO_VENDA
+  ACERTO_INVENTARIO
+  AJUSTE
+}
+
+enum StatusVenda {
+  CONCLUIDA
+  CANCELADA
+}
+
+enum FormaPagamentoTipo {
+  DINHEIRO
+  PIX
+  DEBITO
+  CREDITO
+  CREDIARIO
+  VALE_TROCA
+  OUTRO
+}
+
+enum TipoLancamento {
+  ENTRADA
+  SAIDA
+}
+
+enum CategoriaLancamento {
+  VENDA
+  SANGRIA
+  SUPRIMENTO
+  DESPESA
+  OUTRO
+}
+
+enum StatusSessaoCaixa {
+  ABERTA
+  FECHADA
+}
+
+// ----------------------------- identidade -----------------------------
+model Tenant {
+  id          String   @id @default(uuid(7))
+  nomeNegocio String
+  documento   String?
+  plano       String   @default("trial")
+  status      String   @default("ativo")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lojas           Loja[]
+  usuarios        Usuario[]
+  categorias      Categoria[]
+  marcas          Marca[]
+  colecoes        Colecao[]
+  produtos        Produto[]
+  fornecedores    Fornecedor[]
+  clientes        Cliente[]
+  formasPagamento FormaPagamento[]
+
+  @@map("tenants")
+}
+
+model Usuario {
+  id        String   @id @default(uuid(7))
+  tenantId  String
+  nome      String
+  email     String?
+  telefone  String?
+  senhaHash String
+  papel     Papel    @default(VENDEDOR)
+  status    String   @default("ativo")
+  createdAt DateTime @default(now())
+
+  tenant Tenant        @relation(fields: [tenantId], references: [id])
+  lojas  UsuarioLoja[]
+  vendas Venda[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("usuarios")
+}
+
+model Loja {
+  id        String   @id @default(uuid(7))
+  tenantId  String
+  nome      String
+  endereco  String?
+  status    String   @default("ativa")
+  createdAt DateTime @default(now())
+
+  tenant       Tenant             @relation(fields: [tenantId], references: [id])
+  usuarios     UsuarioLoja[]
+  saldos       SaldoEstoque[]
+  movimentos   MovimentoEstoque[]
+  entradas     EntradaEstoque[]
+  vendas       Venda[]
+  sessoesCaixa SessaoCaixa[]
+  lancamentos  LancamentoCaixa[]
+  configFiscal ConfigFiscal?
+
+  @@index([tenantId])
+  @@map("lojas")
+}
+
+model UsuarioLoja {
+  usuarioId String
+  lojaId    String
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+  loja      Loja    @relation(fields: [lojaId], references: [id])
+
+  @@id([usuarioId, lojaId])
+  @@map("usuario_loja")
+}
+
+// ----------------------------- catálogo (nível Tenant) -----------------------------
+model Categoria {
+  id       String    @id @default(uuid(7))
+  tenantId String
+  nome     String
+  parentId String?
+  tipoModa TipoModa?
+
+  tenant   Tenant      @relation(fields: [tenantId], references: [id])
+  parent   Categoria?  @relation("CategoriaParent", fields: [parentId], references: [id])
+  filhos   Categoria[] @relation("CategoriaParent")
+  produtos Produto[]
+
+  @@index([tenantId])
+  @@map("categorias")
+}
+
+model Marca {
+  id       String  @id @default(uuid(7))
+  tenantId String
+  nome     String
+  tenant   Tenant  @relation(fields: [tenantId], references: [id])
+  produtos Produto[]
+
+  @@index([tenantId])
+  @@map("marcas")
+}
+
+model Colecao {
+  id       String  @id @default(uuid(7))
+  tenantId String
+  nome     String
+  ano      Int?
+  estacao  String?
+  tenant   Tenant  @relation(fields: [tenantId], references: [id])
+  produtos Produto[]
+
+  @@index([tenantId])
+  @@map("colecoes")
+}
+
+model Produto {
+  id                  String   @id @default(uuid(7))
+  tenantId            String
+  nome                String
+  categoriaId         String?
+  marcaId             String?
+  colecaoId           String?
+  precoBaseCentavos   Int      @default(0)
+  custoCompraCentavos Int      @default(0)
+  markupPercentual    Int      @default(0) // ex.: 150 = 150%
+  descricao           String?
+  status              String   @default("ativo")
+  // fiscais (default por categoria; emissão só na Onda 3)
+  ncm                 String?
+  cest                String?
+  origem              String?  @default("0")
+  unidade             String?  @default("UN")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  categoria Categoria? @relation(fields: [categoriaId], references: [id])
+  marca     Marca?     @relation(fields: [marcaId], references: [id])
+  colecao   Colecao?   @relation(fields: [colecaoId], references: [id])
+  variacoes Variacao[]
+
+  @@index([tenantId])
+  @@map("produtos")
+}
+
+model Variacao {
+  id            String  @id @default(uuid(7))
+  tenantId      String
+  produtoId     String
+  cor           String
+  tamanho       String
+  skuInterno    String
+  codigoBarras  String?
+  precoCentavos Int? // override do preço base do produto
+  ativo         Boolean @default(true)
+
+  produto    Produto            @relation(fields: [produtoId], references: [id])
+  saldos     SaldoEstoque[]
+  movimentos MovimentoEstoque[]
+  itensVenda ItemVenda[]
+
+  @@unique([produtoId, cor, tamanho])
+  @@index([tenantId])
+  @@map("variacoes")
+}
+
+// ----------------------------- fornecedor & estoque (ledger por loja) -----------------------------
+model Fornecedor {
+  id        String   @id @default(uuid(7))
+  tenantId  String
+  nome      String
+  documento String?
+  contato   String?
+  status    String   @default("ativo")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  entradas  EntradaEstoque[]
+
+  @@index([tenantId])
+  @@map("fornecedores")
+}
+
+model EntradaEstoque {
+  id           String   @id @default(uuid(7))
+  tenantId     String
+  lojaId       String
+  fornecedorId String?
+  numeroNota   String?
+  data         DateTime @default(now())
+  observacao   String?
+
+  loja       Loja               @relation(fields: [lojaId], references: [id])
+  fornecedor Fornecedor?        @relation(fields: [fornecedorId], references: [id])
+  movimentos MovimentoEstoque[]
+
+  @@index([tenantId, lojaId])
+  @@map("entradas_estoque")
+}
+
+/// Cache materializado do saldo por (loja, variação). Sempre == Σ MovimentoEstoque.
+model SaldoEstoque {
+  tenantId     String
+  lojaId       String
+  variacaoId   String
+  quantidade   Int      @default(0)
+  atualizadoEm DateTime @updatedAt
+
+  loja     Loja     @relation(fields: [lojaId], references: [id])
+  variacao Variacao @relation(fields: [variacaoId], references: [id])
+
+  @@id([lojaId, variacaoId])
+  @@index([tenantId, lojaId, variacaoId])
+  @@map("saldos_estoque")
+}
+
+/// Verdade do estoque (append-only). Quantidade COM SINAL (entrada +, saída -).
+model MovimentoEstoque {
+  id                    String        @id @default(uuid(7))
+  tenantId              String
+  lojaId                String
+  variacaoId            String
+  tipo                  TipoMovimento
+  quantidade            Int
+  custoUnitarioCentavos Int?
+  origemTipo            String? // ex.: "VENDA"
+  origemId              String?
+  entradaId             String?
+  observacao            String?
+  usuarioId             String?
+  createdAt             DateTime      @default(now())
+
+  loja     Loja            @relation(fields: [lojaId], references: [id])
+  variacao Variacao        @relation(fields: [variacaoId], references: [id])
+  entrada  EntradaEstoque? @relation(fields: [entradaId], references: [id])
+
+  @@index([tenantId, lojaId, variacaoId])
+  @@map("movimentos_estoque")
+}
+
+// ----------------------------- vendas -----------------------------
+model FormaPagamento {
+  id       String             @id @default(uuid(7))
+  tenantId String
+  nome     String
+  tipo     FormaPagamentoTipo
+  ativo    Boolean            @default(true)
+  tenant   Tenant             @relation(fields: [tenantId], references: [id])
+  pagamentos Pagamento[]
+
+  @@index([tenantId])
+  @@map("formas_pagamento")
+}
+
+model Venda {
+  id                 String      @id @default(uuid(7))
+  tenantId           String
+  lojaId             String
+  numero             Int // sequencial por loja
+  status             StatusVenda @default(CONCLUIDA)
+  clienteId          String?
+  vendedorId         String?
+  subtotalCentavos   Int         @default(0)
+  descontoCentavos   Int         @default(0)
+  totalCentavos      Int         @default(0)
+  createdAt          DateTime    @default(now())
+  canceladaEm        DateTime?
+  motivoCancelamento String?
+
+  loja       Loja        @relation(fields: [lojaId], references: [id])
+  cliente    Cliente?    @relation(fields: [clienteId], references: [id])
+  vendedor   Usuario?    @relation(fields: [vendedorId], references: [id])
+  itens      ItemVenda[]
+  pagamentos Pagamento[]
+
+  @@unique([lojaId, numero])
+  @@index([tenantId, lojaId])
+  @@map("vendas")
+}
+
+/// Snapshot imutável do item no momento da venda (A4).
+model ItemVenda {
+  id                    String @id @default(uuid(7))
+  vendaId               String
+  variacaoId            String
+  quantidade            Int
+  precoUnitarioCentavos Int
+  descontoCentavos      Int    @default(0)
+  totalCentavos         Int
+  produtoNome           String
+  cor                   String
+  tamanho               String
+
+  venda    Venda    @relation(fields: [vendaId], references: [id])
+  variacao Variacao @relation(fields: [variacaoId], references: [id])
+
+  @@index([vendaId])
+  @@map("itens_venda")
+}
+
+model Pagamento {
+  id               String @id @default(uuid(7))
+  vendaId          String
+  formaPagamentoId String
+  valorCentavos    Int
+
+  venda Venda          @relation(fields: [vendaId], references: [id])
+  forma FormaPagamento @relation(fields: [formaPagamentoId], references: [id])
+
+  @@index([vendaId])
+  @@map("pagamentos")
+}
+
+// ----------------------------- caixa (ledger por loja) -----------------------------
+model SessaoCaixa {
+  id                               String            @id @default(uuid(7))
+  tenantId                         String
+  lojaId                           String
+  status                           StatusSessaoCaixa @default(ABERTA)
+  valorAberturaCentavos            Int               @default(0)
+  abertaPor                        String?
+  abertaEm                         DateTime          @default(now())
+  valorFechamentoInformadoCentavos Int?
+  valorFechamentoCalculadoCentavos Int?
+  diferencaCentavos                Int?
+  fechadaPor                       String?
+  fechadaEm                        DateTime?
+
+  loja        Loja              @relation(fields: [lojaId], references: [id])
+  lancamentos LancamentoCaixa[]
+
+  @@index([tenantId, lojaId])
+  @@map("sessoes_caixa")
+}
+
+model LancamentoCaixa {
+  id               String              @id @default(uuid(7))
+  tenantId         String
+  lojaId           String
+  sessaoCaixaId    String?
+  tipo             TipoLancamento
+  categoria        CategoriaLancamento
+  valorCentavos    Int
+  formaPagamentoId String?
+  origemTipo       String? // ex.: "VENDA"
+  origemId         String?
+  descricao        String?
+  usuarioId        String?
+  data             DateTime            @default(now())
+  createdAt        DateTime            @default(now())
+
+  loja   Loja         @relation(fields: [lojaId], references: [id])
+  sessao SessaoCaixa? @relation(fields: [sessaoCaixaId], references: [id])
+
+  @@index([tenantId, lojaId, data])
+  @@map("lancamentos_caixa")
+}
+
+// ----------------------------- cliente -----------------------------
+model Cliente {
+  id         String   @id @default(uuid(7))
+  tenantId   String
+  nome       String
+  telefone   String?
+  email      String?
+  documento  String?
+  observacao String?
+  createdAt  DateTime @default(now())
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  vendas Venda[]
+
+  @@index([tenantId])
+  @@map("clientes")
+}
+
+// ----------------------------- fiscal (config; emissão = Onda 3) -----------------------------
+/// Opt-in: loja com fiscalAtivo=false ignora todo o fiscal (não pede campo na venda).
+model ConfigFiscal {
+  lojaId            String           @id
+  fiscalAtivo       Boolean          @default(false)
+  regimeTributario  RegimeTributario @default(SIMPLES_NACIONAL)
+  crt               String?
+  inscricaoEstadual String?
+  cscId             String?
+  cscToken          String?
+  certificadoRef    String?
+  ambiente          String           @default("HOMOLOGACAO")
+
+  loja Loja @relation(fields: [lojaId], references: [id])
+
+  @@map("config_fiscal")
+}

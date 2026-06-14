@@ -1,0 +1,21 @@
+{
+  "name": "erp-moda",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "pnpm -C apps/api exec prisma generate",
+    "db:migrate": "pnpm -C apps/api exec prisma migrate dev",
+    "db:studio": "pnpm -C apps/api exec prisma studio"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2",
+    "prettier": "^3.4.2"
+  }
+}
