@@ -57,6 +57,24 @@ export const loginSchema = z.object({
 });
 export type Login = z.infer<typeof loginSchema>;
 
+// ----------------------- categoria / marca / coleção -----------------------
+export const criarCategoriaSchema = z.object({
+  nome: z.string().min(1, 'Informe o nome da categoria'),
+  tipoModa: z.enum(TIPOS_MODA).optional(),
+  parentId: z.string().uuid().optional(),
+});
+export type CriarCategoria = z.infer<typeof criarCategoriaSchema>;
+
+export const criarMarcaSchema = z.object({ nome: z.string().min(1, 'Informe a marca') });
+export type CriarMarca = z.infer<typeof criarMarcaSchema>;
+
+export const criarColecaoSchema = z.object({
+  nome: z.string().min(1, 'Informe a coleção'),
+  ano: z.number().int().optional(),
+  estacao: z.string().optional(),
+});
+export type CriarColecao = z.infer<typeof criarColecaoSchema>;
+
 // ----------------------- produto / grade -----------------------
 export const criarProdutoSchema = z.object({
   nome: z.string().min(1, 'Informe o nome do produto'),

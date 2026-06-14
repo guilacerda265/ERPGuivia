@@ -1,6 +1,7 @@
 import { Controller, Get, Module } from '@nestjs/common';
 import { PrismaModule } from './prisma/prisma.module';
 import { IdentityModule } from './identity/identity.module';
+import { CatalogModule } from './catalog/catalog.module';
 
 @Controller('health')
 class HealthController {
@@ -11,7 +12,7 @@ class HealthController {
 }
 
 @Module({
-  imports: [PrismaModule, IdentityModule],
+  imports: [PrismaModule, IdentityModule, CatalogModule],
   controllers: [HealthController],
 })
 export class AppModule {}
