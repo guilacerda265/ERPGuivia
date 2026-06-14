@@ -107,7 +107,7 @@ export const pagamentoSchema = z.object({
 });
 
 export const criarVendaSchema = z.object({
-  lojaId: z.string().uuid(),
+  lojaId: z.string().uuid().optional(), // o servidor usa a loja do token
   clienteId: z.string().uuid().optional(),
   vendedorId: z.string().uuid().optional(),
   itens: z.array(itemVendaSchema).min(1, 'Adicione ao menos um item'),

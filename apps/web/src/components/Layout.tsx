@@ -3,9 +3,9 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 
 const NAV = [
+  { to: '/vender', label: 'Vender', icon: '🛒' },
   { to: '/produtos', label: 'Produtos', icon: '🏷️' },
   { to: '/estoque', label: 'Estoque', icon: '📦' },
-  { to: '#', label: 'Vender', icon: '🛒', breve: true },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -27,12 +27,10 @@ export function Layout({ children }: { children: ReactNode }) {
 
         <nav className="flex-1 space-y-1">
           {NAV.map((n) => {
-            const ativo = n.to !== '#' && loc.pathname.startsWith(n.to);
+            const ativo = loc.pathname.startsWith(n.to);
             const classes = ativo
               ? 'bg-brand-light text-brand-dark'
-              : n.breve
-                ? 'text-stone-300'
-                : 'text-stone-600 hover:bg-stone-50';
+              : 'text-stone-600 hover:bg-stone-50';
             return (
               <Link
                 key={n.label}
@@ -40,7 +38,6 @@ export function Layout({ children }: { children: ReactNode }) {
                 className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${classes}`}
               >
                 <span className="text-base">{n.icon}</span> {n.label}
-                {n.breve && <span className="ml-auto text-[10px]">em breve</span>}
               </Link>
             );
           })}
