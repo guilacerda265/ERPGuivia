@@ -7,6 +7,8 @@ import { NovoProduto } from './pages/NovoProduto';
 import { Estoque } from './pages/Estoque';
 import { EntradaEstoque } from './pages/EntradaEstoque';
 import { Venda } from './pages/Venda';
+import { Dashboard } from './pages/Dashboard';
+import { Caixa } from './pages/Caixa';
 
 export function App() {
   const { logado } = useAuth();
@@ -23,12 +25,14 @@ export function App() {
   return (
     <Layout>
       <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/caixa" element={<Caixa />} />
         <Route path="/produtos" element={<Produtos />} />
         <Route path="/produtos/novo" element={<NovoProduto />} />
         <Route path="/estoque" element={<Estoque />} />
         <Route path="/estoque/entrada" element={<EntradaEstoque />} />
         <Route path="/vender" element={<Venda />} />
-        <Route path="*" element={<Navigate to="/produtos" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
   );

@@ -17,7 +17,7 @@ export function Login() {
     setCarregando(true);
     try {
       await entrar(identificador, senha);
-      navigate('/produtos');
+      navigate('/');
     } catch (err) {
       setErro(err instanceof ApiError ? err.message : 'Não foi possível entrar.');
     } finally {

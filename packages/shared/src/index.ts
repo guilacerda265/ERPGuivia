@@ -138,3 +138,18 @@ export const criarEntradaSchema = z.object({
   itens: z.array(itemEntradaSchema).min(1, 'Informe ao menos um item'),
 });
 export type CriarEntrada = z.infer<typeof criarEntradaSchema>;
+
+// ----------------------- caixa -----------------------
+export const abrirCaixaSchema = z.object({ valorAberturaCentavos: centavos.default(0) });
+export type AbrirCaixa = z.infer<typeof abrirCaixaSchema>;
+
+export const fecharCaixaSchema = z.object({ valorFechamentoInformadoCentavos: centavos });
+export type FecharCaixa = z.infer<typeof fecharCaixaSchema>;
+
+export const lancamentoCaixaSchema = z.object({
+  tipo: z.enum(['ENTRADA', 'SAIDA']),
+  categoria: z.enum(['SANGRIA', 'SUPRIMENTO', 'DESPESA', 'OUTRO']),
+  valorCentavos: z.number().int().positive(),
+  descricao: z.string().optional(),
+});
+export type LancamentoCaixaInput = z.infer<typeof lancamentoCaixaSchema>;

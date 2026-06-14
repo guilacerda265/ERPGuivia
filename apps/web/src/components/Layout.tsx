@@ -3,9 +3,11 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 
 const NAV = [
+  { to: '/', label: 'Início', icon: '🏠' },
   { to: '/vender', label: 'Vender', icon: '🛒' },
   { to: '/produtos', label: 'Produtos', icon: '🏷️' },
   { to: '/estoque', label: 'Estoque', icon: '📦' },
+  { to: '/caixa', label: 'Caixa', icon: '💰' },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -27,7 +29,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
         <nav className="flex-1 space-y-1">
           {NAV.map((n) => {
-            const ativo = loc.pathname.startsWith(n.to);
+            const ativo = n.to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(n.to);
             const classes = ativo
               ? 'bg-brand-light text-brand-dark'
               : 'text-stone-600 hover:bg-stone-50';
