@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '../lib/api';
+import { ClientePicker, type Cliente } from '../components/ClientePicker';
 
 interface Variacao {
   id: string;
@@ -17,6 +18,7 @@ interface Produto {
 interface Forma {
   id: string;
   nome: string;
+  tipo: string;
 }
 interface ItemCarrinho {
   variacaoId: string;
@@ -44,9 +46,12 @@ export function Venda() {
   const [aberto, setAberto] = useState<Produto | null>(null);
   const [etapa, setEtapa] = useState<'catalogo' | 'pagamento' | 'ok'>('catalogo');
   const [formaId, setFormaId] = useState('');
+  const [cliente, setCliente] = useState<Cliente | null>(null);
+  const [showPicker, setShowPicker] = useState(false);
   const [erro, setErro] = useState('');
 
   const total = carrinho.reduce((s, i) => s + i.precoCentavos * i.quantidade, 0);
+  const ehCrediario = formas?.find((f) => f.id === formaId)?.tipo === 'CREDIARIO';
 
   function adicionar(p: Produto, v: Variacao) {
     const preco = v.precoCentavos ?? p.precoBaseCentavos;
@@ -74,6 +79,7 @@ export function Venda() {
         body: {
           itens: carrinho.map((i) => ({ variacaoId: i.variacaoId, quantidade: i.quantidade })),
           pagamentos: [{ formaPagamentoId: formaId, valorCentavos: total }],
+          clienteId: cliente?.id,
         },
       }),
     onSuccess: () => {
@@ -86,6 +92,7 @@ export function Venda() {
   function novaVenda() {
     setCarrinho([]);
     setFormaId('');
+    setCliente(null);
     setErro('');
     setEtapa('catalogo');
   }
@@ -119,7 +126,7 @@ export function Venda() {
         </div>
         {erro && <div className="mb-4 text-sm bg-rose-50 text-rose-600 rounded-xl px-4 py-3">{erro}</div>}
         <p className="text-sm font-medium text-stone-600 mb-2">Como o cliente vai pagar?</p>
-        <div className="grid grid-cols-2 gap-3 mb-5">
+        <div className="grid grid-cols-2 gap-3 mb-4">
           {formas?.map((f) => (
             <button
               key={f.id}
@@ -130,10 +137,25 @@ export function Venda() {
             </button>
           ))}
         </div>
+
+        {/* cliente */}
+        <div className={`rounded-2xl border p-3 mb-5 flex items-center justify-between ${ehCrediario && !cliente ? 'border-rose-300 bg-rose-50' : 'border-stone-200'}`}>
+          <div>
+            <p className="text-xs text-stone-400">
+              Cliente {ehCrediario ? <span className="text-rose-500 font-medium">(obrigatório)</span> : '(opcional)'}
+            </p>
+            <p className="font-medium text-sm">{cliente ? cliente.nome : 'Não identificado'}</p>
+          </div>
+          <button onClick={() => setShowPicker(true)} className="text-sm text-brand font-medium">
+            {cliente ? 'Trocar' : 'Identificar'}
+          </button>
+        </div>
+
         <button
           onClick={() => {
             setErro('');
             if (!formaId) return setErro('Escolha a forma de pagamento.');
+            if (ehCrediario && !cliente) return setErro('Selecione o cliente para vender no crediário.');
             finalizar.mutate();
           }}
           disabled={finalizar.isPending}
@@ -141,6 +163,13 @@ export function Venda() {
         >
           {finalizar.isPending ? 'Registrando...' : 'Confirmar venda'}
         </button>
+
+        {showPicker && (
+          <ClientePicker
+            onSelecionar={(c) => { setCliente(c); setShowPicker(false); }}
+            onFechar={() => setShowPicker(false)}
+          />
+        )}
       </div>
     );
   }
