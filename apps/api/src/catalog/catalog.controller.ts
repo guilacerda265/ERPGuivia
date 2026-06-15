@@ -2,10 +2,12 @@ import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import {
   criarCategoriaSchema,
   criarColecaoSchema,
+  criarDepartamentoSchema,
   criarMarcaSchema,
   criarProdutoSchema,
   type CriarCategoria,
   type CriarColecao,
+  type CriarDepartamento,
   type CriarMarca,
   type CriarProduto,
 } from '@erp/shared';
@@ -53,6 +55,18 @@ export class CatalogController {
     @Body(new ZodValidationPipe(criarColecaoSchema)) dto: CriarColecao,
   ) {
     return this.catalog.criarColecao(u.tenantId, dto);
+  }
+
+  @Get('departamentos')
+  listarDepartamentos(@CurrentUser() u: AuthUser) {
+    return this.catalog.listarDepartamentos(u.tenantId);
+  }
+  @Post('departamentos')
+  criarDepartamento(
+    @CurrentUser() u: AuthUser,
+    @Body(new ZodValidationPipe(criarDepartamentoSchema)) dto: CriarDepartamento,
+  ) {
+    return this.catalog.criarDepartamento(u.tenantId, dto);
   }
 
   @Get('produtos')

@@ -75,17 +75,30 @@ export const criarColecaoSchema = z.object({
 });
 export type CriarColecao = z.infer<typeof criarColecaoSchema>;
 
+export const criarDepartamentoSchema = z.object({
+  nome: z.string().min(1, 'Informe o departamento'),
+});
+export type CriarDepartamento = z.infer<typeof criarDepartamentoSchema>;
+
 // ----------------------- produto / grade -----------------------
+/** Uma variação da grade. Código de barras em branco => gerado automaticamente. */
+export const variacaoInputSchema = z.object({
+  cor: z.string().min(1),
+  tamanho: z.string().min(1),
+  codigoBarras: z.string().optional(),
+});
+export type VariacaoInput = z.infer<typeof variacaoInputSchema>;
+
 export const criarProdutoSchema = z.object({
   nome: z.string().min(1, 'Informe o nome do produto'),
-  categoriaId: z.string().uuid().optional(),
-  marcaId: z.string().uuid().optional(),
+  categoriaId: z.string().uuid('Escolha a categoria'), // obrigatório
+  marcaId: z.string().uuid('Escolha a marca'), // obrigatório
   colecaoId: z.string().uuid().optional(),
+  departamentoId: z.string().uuid().optional(),
   custoCompraCentavos: centavos.default(0),
   markupPercentual: z.number().int().min(0).default(0), // ex.: 150 = 150%
-  precoBaseCentavos: centavos,
-  cores: z.array(z.string().min(1)).min(1, 'Escolha ao menos uma cor'),
-  tamanhos: z.array(z.string().min(1)).min(1, 'Escolha ao menos um tamanho'),
+  precoBaseCentavos: centavos, // preço de venda (editável — pode sobrepor o sugerido)
+  variacoes: z.array(variacaoInputSchema).min(1, 'Monte a grade (cor e tamanho)'),
 });
 export type CriarProduto = z.infer<typeof criarProdutoSchema>;
 

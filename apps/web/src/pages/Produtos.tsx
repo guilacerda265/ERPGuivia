@@ -10,6 +10,7 @@ interface Variacao {
 interface Produto {
   id: string;
   nome: string;
+  codigo?: string | null;
   precoBaseCentavos: number;
   marca?: { nome: string } | null;
   colecao?: { nome: string } | null;
@@ -53,12 +54,16 @@ export function Produtos() {
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-5xl">
         {data?.map((p) => (
-          <div key={p.id} className="rounded-2xl bg-white border border-stone-200/70 shadow-soft p-4">
+          <Link
+            key={p.id}
+            to={`/produtos/${p.id}`}
+            className="rounded-2xl bg-white border border-stone-200/70 shadow-soft p-4 hover:border-brand transition-colors"
+          >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-semibold truncate">{p.nome}</p>
                 <p className="text-xs text-stone-400 truncate">
-                  {[p.marca?.nome, p.colecao?.nome].filter(Boolean).join(' · ') || '—'}
+                  {[p.codigo, p.marca?.nome, p.colecao?.nome].filter(Boolean).join(' · ') || '—'}
                 </p>
               </div>
               <p className="font-bold text-brand whitespace-nowrap">{brl(p.precoBaseCentavos)}</p>
@@ -66,7 +71,7 @@ export function Produtos() {
             <p className="text-xs text-stone-400 mt-3">
               {p.variacoes.length} variações (cor × tamanho)
             </p>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

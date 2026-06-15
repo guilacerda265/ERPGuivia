@@ -96,6 +96,7 @@ model Tenant {
   categorias      Categoria[]
   marcas          Marca[]
   colecoes        Colecao[]
+  departamentos   Departamento[]
   produtos        Produto[]
   fornecedores    Fornecedor[]
   clientes        Cliente[]
@@ -197,13 +198,27 @@ model Colecao {
   @@map("colecoes")
 }
 
+/// Departamento: masculino, feminino, infantil...
+model Departamento {
+  id       String  @id @default(uuid(7))
+  tenantId String
+  nome     String
+  tenant   Tenant  @relation(fields: [tenantId], references: [id])
+  produtos Produto[]
+
+  @@index([tenantId])
+  @@map("departamentos")
+}
+
 model Produto {
   id                  String   @id @default(uuid(7))
   tenantId            String
   nome                String
+  codigo              String? // código do produto (visível p/ etiqueta)
   categoriaId         String?
   marcaId             String?
   colecaoId           String?
+  departamentoId      String?
   precoBaseCentavos   Int      @default(0)
   custoCompraCentavos Int      @default(0)
   markupPercentual    Int      @default(0) // ex.: 150 = 150%
@@ -217,12 +232,14 @@ model Produto {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  tenant    Tenant     @relation(fields: [tenantId], references: [id])
-  categoria Categoria? @relation(fields: [categoriaId], references: [id])
-  marca     Marca?     @relation(fields: [marcaId], references: [id])
-  colecao   Colecao?   @relation(fields: [colecaoId], references: [id])
-  variacoes Variacao[]
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  categoria    Categoria?    @relation(fields: [categoriaId], references: [id])
+  marca        Marca?        @relation(fields: [marcaId], references: [id])
+  colecao      Colecao?      @relation(fields: [colecaoId], references: [id])
+  departamento Departamento? @relation(fields: [departamentoId], references: [id])
+  variacoes    Variacao[]
 
+  @@unique([tenantId, codigo])
   @@index([tenantId])
   @@map("produtos")
 }

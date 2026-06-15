@@ -4,6 +4,7 @@ import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
 import { Produtos } from './pages/Produtos';
 import { NovoProduto } from './pages/NovoProduto';
+import { ProdutoDetalhe } from './pages/ProdutoDetalhe';
 import { Estoque } from './pages/Estoque';
 import { EntradaEstoque } from './pages/EntradaEstoque';
 import { Venda } from './pages/Venda';
@@ -29,6 +30,7 @@ export function App() {
         <Route path="/caixa" element={<Caixa />} />
         <Route path="/produtos" element={<Produtos />} />
         <Route path="/produtos/novo" element={<NovoProduto />} />
+        <Route path="/produtos/:id" element={<ProdutoDetalhe />} />
         <Route path="/estoque" element={<Estoque />} />
         <Route path="/estoque/entrada" element={<EntradaEstoque />} />
         <Route path="/vender" element={<Venda />} />
