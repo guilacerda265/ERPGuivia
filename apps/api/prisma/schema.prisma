@@ -97,6 +97,8 @@ model Tenant {
   marcas          Marca[]
   colecoes        Colecao[]
   departamentos   Departamento[]
+  cores           Cor[]
+  gradesTamanho   GradeTamanho[]
   produtos        Produto[]
   fornecedores    Fornecedor[]
   clientes        Cliente[]
@@ -208,6 +210,30 @@ model Departamento {
 
   @@index([tenantId])
   @@map("departamentos")
+}
+
+/// Cor cadastrável (selecionável na grade). hex opcional p/ mostrar a amostra.
+model Cor {
+  id       String @id @default(uuid(7))
+  tenantId String
+  nome     String
+  hex      String?
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@map("cores")
+}
+
+/// Tipo de grade de tamanhos nomeado (ex.: "Vestuário" = PP,P,M,G,GG).
+model GradeTamanho {
+  id       String   @id @default(uuid(7))
+  tenantId String
+  nome     String
+  tamanhos String[]
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@map("grades_tamanho")
 }
 
 model Produto {

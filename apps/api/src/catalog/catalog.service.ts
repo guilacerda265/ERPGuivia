@@ -3,7 +3,9 @@ import type {
   AtualizarProduto,
   CriarCategoria,
   CriarColecao,
+  CriarCor,
   CriarDepartamento,
+  CriarGrade,
   CriarMarca,
   CriarProduto,
 } from '@erp/shared';
@@ -85,6 +87,35 @@ export class CatalogService {
   async atualizarDepartamento(tenantId: string, id: string, dto: CriarDepartamento) {
     await this.prisma.departamento.updateMany({ where: { id, tenantId }, data: { nome: dto.nome } });
     return this.prisma.departamento.findFirst({ where: { id, tenantId } });
+  }
+
+  // ---- cores ----
+  listarCores(tenantId: string) {
+    return this.prisma.cor.findMany({ where: { tenantId }, orderBy: { nome: 'asc' } });
+  }
+  criarCor(tenantId: string, dto: CriarCor) {
+    return this.prisma.cor.create({ data: { tenantId, nome: dto.nome, hex: dto.hex } });
+  }
+  async atualizarCor(tenantId: string, id: string, dto: CriarCor) {
+    await this.prisma.cor.updateMany({ where: { id, tenantId }, data: { nome: dto.nome, hex: dto.hex } });
+    return this.prisma.cor.findFirst({ where: { id, tenantId } });
+  }
+
+  // ---- grades de tamanho ----
+  listarGrades(tenantId: string) {
+    return this.prisma.gradeTamanho.findMany({ where: { tenantId }, orderBy: { nome: 'asc' } });
+  }
+  criarGrade(tenantId: string, dto: CriarGrade) {
+    return this.prisma.gradeTamanho.create({
+      data: { tenantId, nome: dto.nome, tamanhos: dto.tamanhos },
+    });
+  }
+  async atualizarGrade(tenantId: string, id: string, dto: CriarGrade) {
+    await this.prisma.gradeTamanho.updateMany({
+      where: { id, tenantId },
+      data: { nome: dto.nome, tamanhos: dto.tamanhos },
+    });
+    return this.prisma.gradeTamanho.findFirst({ where: { id, tenantId } });
   }
 
   // ---- produtos ----

@@ -3,13 +3,17 @@ import {
   atualizarProdutoSchema,
   criarCategoriaSchema,
   criarColecaoSchema,
+  criarCorSchema,
   criarDepartamentoSchema,
+  criarGradeSchema,
   criarMarcaSchema,
   criarProdutoSchema,
   type AtualizarProduto,
   type CriarCategoria,
   type CriarColecao,
+  type CriarCor,
   type CriarDepartamento,
+  type CriarGrade,
   type CriarMarca,
   type CriarProduto,
 } from '@erp/shared';
@@ -101,6 +105,40 @@ export class CatalogController {
     @Body(new ZodValidationPipe(criarDepartamentoSchema)) dto: CriarDepartamento,
   ) {
     return this.catalog.atualizarDepartamento(u.tenantId, id, dto);
+  }
+
+  @Get('cores')
+  listarCores(@CurrentUser() u: AuthUser) {
+    return this.catalog.listarCores(u.tenantId);
+  }
+  @Post('cores')
+  criarCor(@CurrentUser() u: AuthUser, @Body(new ZodValidationPipe(criarCorSchema)) dto: CriarCor) {
+    return this.catalog.criarCor(u.tenantId, dto);
+  }
+  @Put('cores/:id')
+  atualizarCor(
+    @CurrentUser() u: AuthUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(criarCorSchema)) dto: CriarCor,
+  ) {
+    return this.catalog.atualizarCor(u.tenantId, id, dto);
+  }
+
+  @Get('grades')
+  listarGrades(@CurrentUser() u: AuthUser) {
+    return this.catalog.listarGrades(u.tenantId);
+  }
+  @Post('grades')
+  criarGrade(@CurrentUser() u: AuthUser, @Body(new ZodValidationPipe(criarGradeSchema)) dto: CriarGrade) {
+    return this.catalog.criarGrade(u.tenantId, dto);
+  }
+  @Put('grades/:id')
+  atualizarGrade(
+    @CurrentUser() u: AuthUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(criarGradeSchema)) dto: CriarGrade,
+  ) {
+    return this.catalog.atualizarGrade(u.tenantId, id, dto);
   }
 
   @Get('produtos')

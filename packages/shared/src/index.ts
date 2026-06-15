@@ -80,6 +80,18 @@ export const criarDepartamentoSchema = z.object({
 });
 export type CriarDepartamento = z.infer<typeof criarDepartamentoSchema>;
 
+export const criarCorSchema = z.object({
+  nome: z.string().min(1, 'Informe a cor'),
+  hex: z.string().optional(),
+});
+export type CriarCor = z.infer<typeof criarCorSchema>;
+
+export const criarGradeSchema = z.object({
+  nome: z.string().min(1, 'Informe o nome da grade'),
+  tamanhos: z.array(z.string().min(1)).min(1, 'Adicione ao menos um tamanho'),
+});
+export type CriarGrade = z.infer<typeof criarGradeSchema>;
+
 // ----------------------- produto / grade -----------------------
 /** Uma variação da grade. Código de barras em branco => gerado automaticamente. */
 export const variacaoInputSchema = z.object({

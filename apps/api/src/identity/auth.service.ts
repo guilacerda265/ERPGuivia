@@ -45,6 +45,32 @@ export class AuthService {
           { tenantId: tenant.id, nome: 'Crédito', tipo: 'CREDITO' },
         ],
       });
+      // cores principais por padrão (a loja ajusta depois)
+      await tx.cor.createMany({
+        data: [
+          { tenantId: tenant.id, nome: 'Preto', hex: '#111111' },
+          { tenantId: tenant.id, nome: 'Branco', hex: '#FFFFFF' },
+          { tenantId: tenant.id, nome: 'Cinza', hex: '#6B7280' },
+          { tenantId: tenant.id, nome: 'Bege', hex: '#D6C7A1' },
+          { tenantId: tenant.id, nome: 'Vermelho', hex: '#DC2626' },
+          { tenantId: tenant.id, nome: 'Azul', hex: '#2563EB' },
+          { tenantId: tenant.id, nome: 'Verde', hex: '#16A34A' },
+          { tenantId: tenant.id, nome: 'Rosa', hex: '#EC4899' },
+          { tenantId: tenant.id, nome: 'Amarelo', hex: '#FACC15' },
+        ],
+      });
+      // grades de tamanho padrão
+      await tx.gradeTamanho.createMany({
+        data: [
+          { tenantId: tenant.id, nome: 'Vestuário', tamanhos: ['PP', 'P', 'M', 'G', 'GG', 'XG'] },
+          {
+            tenantId: tenant.id,
+            nome: 'Numérico (calçado)',
+            tamanhos: ['34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44'],
+          },
+          { tenantId: tenant.id, nome: 'Único', tamanhos: ['Único'] },
+        ],
+      });
       return { usuario, loja };
     });
 

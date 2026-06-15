@@ -29,8 +29,6 @@ interface Produto {
   variacoes: { id: string; cor: string; tamanho: string; codigoBarras: string | null; ativo: boolean }[];
 }
 
-const CORES = ['Preto', 'Branco', 'Vermelho', 'Azul', 'Verde', 'Rosa', 'Bege'];
-const TAMANHOS = ['PP', 'P', 'M', 'G', 'GG', '38', '40', '42'];
 const brl = (c: number) => (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const centavos = (s: string) => Math.round((parseFloat(s.replace(',', '.')) || 0) * 100);
 const reais = (c: number) => (c / 100).toFixed(2).replace('.', ',');
@@ -48,6 +46,7 @@ export function EditarProduto() {
   const marcas = useQuery({ queryKey: ['marcas'], queryFn: () => api<Opcao[]>('/catalogo/marcas') });
   const colecoes = useQuery({ queryKey: ['colecoes'], queryFn: () => api<Opcao[]>('/catalogo/colecoes') });
   const departamentos = useQuery({ queryKey: ['departamentos'], queryFn: () => api<Opcao[]>('/catalogo/departamentos') });
+  const cores = useQuery({ queryKey: ['cores'], queryFn: () => api<{ id: string; nome: string }[]>('/catalogo/cores') });
 
   const criarRecurso = (recurso: string) => async (nome: string) => {
     const o = await api<Opcao>(`/catalogo/${recurso}`, { method: 'POST', body: { nome } });
@@ -64,8 +63,8 @@ export function EditarProduto() {
   const [markup, setMarkup] = useState('');
   const [precoVenda, setPrecoVenda] = useState('');
   const [variacoes, setVariacoes] = useState<VarEdit[]>([]);
-  const [novaCor, setNovaCor] = useState('Preto');
-  const [novoTam, setNovoTam] = useState('M');
+  const [novaCor, setNovaCor] = useState('');
+  const [novoTam, setNovoTam] = useState('');
   const [erro, setErro] = useState('');
 
   useEffect(() => {
@@ -86,8 +85,12 @@ export function EditarProduto() {
   const sugerido = precoSugeridoCentavos(centavos(custo), parseInt(markup, 10) || 0);
 
   function adicionarVariacao() {
-    if (variacoes.some((v) => v.cor === novaCor && v.tamanho === novoTam)) return;
-    setVariacoes((vs) => [...vs, { cor: novaCor, tamanho: novoTam, codigoBarras: '', ativo: true }]);
+    const cor = novaCor.trim();
+    const tam = novoTam.trim();
+    if (!cor || !tam) return;
+    if (variacoes.some((v) => v.cor === cor && v.tamanho === tam)) return;
+    setVariacoes((vs) => [...vs, { cor, tamanho: tam, codigoBarras: '', ativo: true }]);
+    setNovoTam('');
   }
   function mudarVar(i: number, patch: Partial<VarEdit>) {
     setVariacoes((vs) => vs.map((v, idx) => (idx === i ? { ...v, ...patch } : v)));
@@ -185,8 +188,17 @@ export function EditarProduto() {
           ))}
         </div>
         <div className="flex gap-2 items-end border-t border-stone-100 pt-3">
-          <div><label className="text-xs text-stone-500">Cor</label><select value={novaCor} onChange={(e) => setNovaCor(e.target.value)} className="mt-1 rounded-lg border border-stone-200 px-2 py-2 text-sm bg-white">{CORES.map((c) => <option key={c}>{c}</option>)}</select></div>
-          <div><label className="text-xs text-stone-500">Tamanho</label><select value={novoTam} onChange={(e) => setNovoTam(e.target.value)} className="mt-1 rounded-lg border border-stone-200 px-2 py-2 text-sm bg-white">{TAMANHOS.map((t) => <option key={t}>{t}</option>)}</select></div>
+          <div>
+            <label className="text-xs text-stone-500">Cor</label>
+            <select value={novaCor} onChange={(e) => setNovaCor(e.target.value)} className="mt-1 rounded-lg border border-stone-200 px-2 py-2 text-sm bg-white">
+              <option value="">Cor...</option>
+              {cores.data?.map((c) => <option key={c.id} value={c.nome}>{c.nome}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-stone-500">Tamanho</label>
+            <input value={novoTam} onChange={(e) => setNovoTam(e.target.value)} placeholder="Ex.: M, 40" className="mt-1 w-24 rounded-lg border border-stone-200 px-2 py-2 text-sm outline-none focus:border-brand" />
+          </div>
           <button onClick={adicionarVariacao} className="text-sm border border-brand text-brand rounded-lg px-3 py-2 font-medium hover:bg-brand-light">+ variação</button>
         </div>
       </div>
