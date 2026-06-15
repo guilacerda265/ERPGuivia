@@ -30,6 +30,7 @@ interface ItemCarrinho {
 }
 
 const brl = (c: number) => (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const venc30 = () => new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
 
 export function Venda() {
   const queryClient = useQueryClient();
@@ -48,6 +49,8 @@ export function Venda() {
   const [formaId, setFormaId] = useState('');
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [showPicker, setShowPicker] = useState(false);
+  const [parcelas, setParcelas] = useState(1);
+  const [vencimento, setVencimento] = useState(venc30);
   const [erro, setErro] = useState('');
 
   const total = carrinho.reduce((s, i) => s + i.precoCentavos * i.quantidade, 0);
@@ -80,6 +83,7 @@ export function Venda() {
           itens: carrinho.map((i) => ({ variacaoId: i.variacaoId, quantidade: i.quantidade })),
           pagamentos: [{ formaPagamentoId: formaId, valorCentavos: total }],
           clienteId: cliente?.id,
+          crediario: ehCrediario ? { parcelas, primeiroVencimento: vencimento, intervaloDias: 30 } : undefined,
         },
       }),
     onSuccess: () => {
@@ -93,6 +97,8 @@ export function Venda() {
     setCarrinho([]);
     setFormaId('');
     setCliente(null);
+    setParcelas(1);
+    setVencimento(venc30());
     setErro('');
     setEtapa('catalogo');
   }
@@ -150,6 +156,31 @@ export function Venda() {
             {cliente ? 'Trocar' : 'Identificar'}
           </button>
         </div>
+
+        {/* parcelamento (só crediário) */}
+        {ehCrediario && (
+          <div className="rounded-2xl border border-stone-200 p-3 mb-5">
+            <p className="text-xs text-stone-400 mb-2">Parcelamento</p>
+            <div className="flex gap-2">
+              <select
+                value={parcelas}
+                onChange={(e) => setParcelas(Number(e.target.value))}
+                className="rounded-xl border border-stone-200 px-3 py-2 text-sm bg-white outline-none focus:border-brand"
+              >
+                {[1, 2, 3, 4, 5, 6, 10, 12].map((n) => (
+                  <option key={n} value={n}>{n}x de {brl(Math.floor(total / n))}</option>
+                ))}
+              </select>
+              <input
+                type="date"
+                value={vencimento}
+                onChange={(e) => setVencimento(e.target.value)}
+                className="flex-1 rounded-xl border border-stone-200 px-3 py-2 text-sm outline-none focus:border-brand"
+              />
+            </div>
+            <p className="text-[11px] text-stone-400 mt-1">1º vencimento acima; as demais a cada 30 dias.</p>
+          </div>
+        )}
 
         <button
           onClick={() => {

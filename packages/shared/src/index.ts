@@ -161,8 +161,18 @@ export const criarVendaSchema = z.object({
   descontoCentavos: centavos.default(0),
   pagamentos: z.array(pagamentoSchema).min(1, 'Informe o pagamento'),
   permitirSemEstoque: z.boolean().default(false),
+  crediario: z
+    .object({
+      parcelas: z.number().int().positive().default(1),
+      primeiroVencimento: z.string(), // YYYY-MM-DD
+      intervaloDias: z.number().int().positive().default(30),
+    })
+    .optional(),
 });
 export type CriarVenda = z.infer<typeof criarVendaSchema>;
+
+export const receberParcelaSchema = z.object({ formaPagamentoId: z.string().uuid().optional() });
+export type ReceberParcela = z.infer<typeof receberParcelaSchema>;
 
 // ----------------------- fornecedor / entrada de estoque -----------------------
 export const criarFornecedorSchema = z.object({

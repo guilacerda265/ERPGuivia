@@ -17,11 +17,15 @@ export class CustomersService {
     const clientes = await this.prisma.cliente.findMany({
       where: { tenantId },
       orderBy: { nome: 'asc' },
-      include: { contasReceber: { where: { status: 'ABERTA' } } },
+      include: { contasReceber: { where: { status: 'ABERTA' }, include: { parcelas: true } } },
     });
     return clientes.map(({ contasReceber, ...c }) => ({
       ...c,
-      saldoDevedorCentavos: contasReceber.reduce((s, r) => s + r.valorTotalCentavos, 0),
+      saldoDevedorCentavos: contasReceber.reduce((s, conta) => {
+        // parcelas em aberto (ou o total, se a conta ainda não tiver parcelas)
+        if (conta.parcelas.length === 0) return s + conta.valorTotalCentavos;
+        return s + conta.parcelas.filter((p) => p.status === 'ABERTA').reduce((a, p) => a + p.valorCentavos, 0);
+      }, 0),
     }));
   }
 

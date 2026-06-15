@@ -8,6 +8,7 @@ import { CashierModule } from './cashier/cashier.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { CustomersModule } from './customers/customers.module';
 import { AuditModule } from './audit/audit.module';
+import { ReceivablesModule } from './receivables/receivables.module';
 
 @Controller('health')
 class HealthController {
@@ -28,6 +29,7 @@ class HealthController {
     DashboardModule,
     CustomersModule,
     AuditModule,
+    ReceivablesModule,
   ],
   controllers: [HealthController],
 })

@@ -156,8 +156,8 @@ export class SalesService {
 
       for (const p of dto.pagamentos) {
         if (tipoForma.get(p.formaPagamentoId) === 'CREDIARIO') {
-          // crediário: vira conta a receber (não entra no caixa)
-          await tx.contaReceber.create({
+          // crediário: vira conta a receber + parcelas (não entra no caixa)
+          const conta = await tx.contaReceber.create({
             data: {
               tenantId,
               lojaId,
@@ -166,6 +166,28 @@ export class SalesService {
               valorTotalCentavos: p.valorCentavos,
             },
           });
+          const venc30 = new Date();
+          venc30.setDate(venc30.getDate() + 30);
+          const cred = dto.crediario ?? {
+            parcelas: 1,
+            primeiroVencimento: venc30.toISOString().slice(0, 10),
+            intervaloDias: 30,
+          };
+          const base = Math.floor(p.valorCentavos / cred.parcelas);
+          const resto = p.valorCentavos - base * cred.parcelas;
+          for (let i = 0; i < cred.parcelas; i++) {
+            const venc = new Date(`${cred.primeiroVencimento}T00:00:00`);
+            venc.setDate(venc.getDate() + i * cred.intervaloDias);
+            await tx.parcela.create({
+              data: {
+                tenantId,
+                contaReceberId: conta.id,
+                numero: i + 1,
+                valorCentavos: base + (i === 0 ? resto : 0),
+                vencimento: venc.toISOString().slice(0, 10),
+              },
+            });
+          }
         } else {
           await tx.lancamentoCaixa.create({
             data: {
