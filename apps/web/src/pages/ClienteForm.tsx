@@ -66,7 +66,31 @@ export function ClienteForm() {
 
   const [f, setF] = useState(VAZIO);
   const [erro, setErro] = useState('');
+  const [buscandoCep, setBuscandoCep] = useState(false);
   const set = (k: keyof typeof VAZIO) => (v: string) => setF((p) => ({ ...p, [k]: v }));
+
+  // consulta automática de CEP (ViaCEP) — preenche o endereço
+  async function buscarCep(cepValor: string) {
+    const digitos = cepValor.replace(/\D/g, '');
+    if (digitos.length !== 8) return;
+    setBuscandoCep(true);
+    try {
+      const d = await (await fetch(`https://viacep.com.br/ws/${digitos}/json/`)).json();
+      if (!d.erro) {
+        setF((p) => ({
+          ...p,
+          logradouro: d.logradouro || p.logradouro,
+          bairro: d.bairro || p.bairro,
+          cidade: d.localidade || p.cidade,
+          uf: d.uf || p.uf,
+        }));
+      }
+    } catch {
+      // silencioso — a loja pode preencher à mão
+    } finally {
+      setBuscandoCep(false);
+    }
+  }
 
   useEffect(() => {
     if (!data) return;
@@ -134,7 +158,21 @@ export function ClienteForm() {
       <div className="rounded-2xl bg-white border border-stone-200/70 shadow-soft p-4 mb-4">
         <p className="text-sm font-semibold mb-3">Endereço</p>
         <div className="grid grid-cols-6 gap-3">
-          <Campo label="CEP" value={f.cep} onChange={set('cep')} span="col-span-2" />
+          <div className="col-span-2">
+            <label className="text-xs text-stone-500">
+              CEP {buscandoCep && <span className="text-brand">· buscando…</span>}
+            </label>
+            <input
+              value={f.cep}
+              onChange={(e) => {
+                set('cep')(e.target.value);
+                if (e.target.value.replace(/\D/g, '').length === 8) void buscarCep(e.target.value);
+              }}
+              onBlur={(e) => void buscarCep(e.target.value)}
+              placeholder="00000-000"
+              className={INP}
+            />
+          </div>
           <Campo label="Logradouro" value={f.logradouro} onChange={set('logradouro')} span="col-span-4" />
           <Campo label="Número" value={f.numero} onChange={set('numero')} span="col-span-2" />
           <Campo label="Complemento" value={f.complemento} onChange={set('complemento')} span="col-span-4" />
