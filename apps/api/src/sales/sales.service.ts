@@ -73,6 +73,36 @@ export class SalesService {
       );
     }
 
+    // forma de pagamento de cada pagamento (p/ saber o que é crediário)
+    const formasPag = await this.prisma.formaPagamento.findMany({
+      where: { id: { in: dto.pagamentos.map((p) => p.formaPagamentoId) }, tenantId },
+    });
+    const tipoForma = new Map(formasPag.map((f) => [f.id, f.tipo]));
+    const temCrediario = dto.pagamentos.some((p) => tipoForma.get(p.formaPagamentoId) === 'CREDIARIO');
+
+    if (temCrediario) {
+      if (!dto.clienteId) {
+        throw new BadRequestException('Venda no crediário exige identificar o cliente.');
+      }
+      const cliente = await this.prisma.cliente.findFirst({ where: { id: dto.clienteId, tenantId } });
+      if (!cliente) throw new NotFoundException('Cliente não encontrado.');
+
+      const cfg = (await this.prisma.configCrediario.findUnique({ where: { tenantId } })) ?? {
+        exigeCpf: true,
+        exigeTelefone: true,
+        exigeEndereco: false,
+        exigeNascimento: false,
+      };
+      const faltando: string[] = [];
+      if (cfg.exigeCpf && !cliente.documento) faltando.push('CPF');
+      if (cfg.exigeTelefone && !cliente.telefone) faltando.push('telefone');
+      if (cfg.exigeEndereco && (!cliente.cep || !cliente.logradouro || !cliente.cidade)) faltando.push('endereço');
+      if (cfg.exigeNascimento && !cliente.dataNascimento) faltando.push('data de nascimento');
+      if (faltando.length) {
+        throw new BadRequestException(`Para crediário, complete o cadastro do cliente: ${faltando.join(', ')}.`);
+      }
+    }
+
     return this.prisma.comTenant(tenantId, async (tx) => {
       const ultima = await tx.venda.findFirst({
         where: { lojaId },
@@ -125,19 +155,32 @@ export class SalesService {
       }
 
       for (const p of dto.pagamentos) {
-        await tx.lancamentoCaixa.create({
-          data: {
-            tenantId,
-            lojaId,
-            tipo: 'ENTRADA',
-            categoria: 'VENDA',
-            valorCentavos: p.valorCentavos,
-            formaPagamentoId: p.formaPagamentoId,
-            origemTipo: 'VENDA',
-            origemId: venda.id,
-            usuarioId: vendedorId,
-          },
-        });
+        if (tipoForma.get(p.formaPagamentoId) === 'CREDIARIO') {
+          // crediário: vira conta a receber (não entra no caixa)
+          await tx.contaReceber.create({
+            data: {
+              tenantId,
+              lojaId,
+              clienteId: dto.clienteId!,
+              vendaId: venda.id,
+              valorTotalCentavos: p.valorCentavos,
+            },
+          });
+        } else {
+          await tx.lancamentoCaixa.create({
+            data: {
+              tenantId,
+              lojaId,
+              tipo: 'ENTRADA',
+              categoria: 'VENDA',
+              valorCentavos: p.valorCentavos,
+              formaPagamentoId: p.formaPagamentoId,
+              origemTipo: 'VENDA',
+              origemId: venda.id,
+              usuarioId: vendedorId,
+            },
+          });
+        }
       }
 
       return tx.venda.findUnique({

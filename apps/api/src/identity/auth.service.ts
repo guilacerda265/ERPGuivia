@@ -43,8 +43,11 @@ export class AuthService {
           { tenantId: tenant.id, nome: 'Pix', tipo: 'PIX' },
           { tenantId: tenant.id, nome: 'Débito', tipo: 'DEBITO' },
           { tenantId: tenant.id, nome: 'Crédito', tipo: 'CREDITO' },
+          { tenantId: tenant.id, nome: 'Crediário', tipo: 'CREDIARIO' },
         ],
       });
+      // política de crediário padrão (CPF e telefone obrigatórios)
+      await tx.configCrediario.create({ data: { tenantId: tenant.id } });
       // cores principais por padrão (a loja ajusta depois)
       await tx.cor.createMany({
         data: [

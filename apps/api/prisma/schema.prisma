@@ -103,6 +103,7 @@ model Tenant {
   fornecedores    Fornecedor[]
   clientes        Cliente[]
   formasPagamento FormaPagamento[]
+  configCrediario ConfigCrediario?
 
   @@map("tenants")
 }
@@ -141,9 +142,10 @@ model Loja {
   movimentos   MovimentoEstoque[]
   entradas     EntradaEstoque[]
   vendas       Venda[]
-  sessoesCaixa SessaoCaixa[]
-  lancamentos  LancamentoCaixa[]
-  configFiscal ConfigFiscal?
+  sessoesCaixa  SessaoCaixa[]
+  lancamentos   LancamentoCaixa[]
+  configFiscal  ConfigFiscal?
+  contasReceber ContaReceber[]
 
   @@index([tenantId])
   @@map("lojas")
@@ -483,20 +485,61 @@ model LancamentoCaixa {
 
 // ----------------------------- cliente -----------------------------
 model Cliente {
-  id         String   @id @default(uuid(7))
-  tenantId   String
-  nome       String
-  telefone   String?
-  email      String?
-  documento  String?
-  observacao String?
-  createdAt  DateTime @default(now())
+  id                    String   @id @default(uuid(7))
+  tenantId              String
+  nome                  String
+  telefone              String?
+  email                 String?
+  documento             String? // CPF/CNPJ
+  dataNascimento        String?
+  cep                   String?
+  logradouro            String?
+  numero                String?
+  complemento           String?
+  bairro                String?
+  cidade                String?
+  uf                    String?
+  limiteCreditoCentavos Int      @default(0)
+  observacao            String?
+  createdAt             DateTime @default(now())
 
-  tenant Tenant  @relation(fields: [tenantId], references: [id])
-  vendas Venda[]
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  vendas        Venda[]
+  contasReceber ContaReceber[]
 
   @@index([tenantId])
   @@map("clientes")
+}
+
+/// Política de campos obrigatórios do cliente para vendas no crediário (por tenant).
+model ConfigCrediario {
+  tenantId        String  @id
+  exigeCpf        Boolean @default(true)
+  exigeTelefone   Boolean @default(true)
+  exigeEndereco   Boolean @default(false)
+  exigeNascimento Boolean @default(false)
+  tenant          Tenant  @relation(fields: [tenantId], references: [id])
+
+  @@map("config_crediario")
+}
+
+/// Conta a receber (crediário). Parcelas/recebimento entram na próxima parte.
+model ContaReceber {
+  id                 String   @id @default(uuid(7))
+  tenantId           String
+  lojaId             String
+  clienteId          String
+  vendaId            String?
+  valorTotalCentavos Int
+  status             String   @default("ABERTA")
+  createdAt          DateTime @default(now())
+
+  loja    Loja    @relation(fields: [lojaId], references: [id])
+  cliente Cliente @relation(fields: [clienteId], references: [id])
+
+  @@index([tenantId, lojaId])
+  @@index([clienteId])
+  @@map("contas_receber")
 }
 
 // ----------------------------- fiscal (config; emissão = Onda 3) -----------------------------

@@ -200,3 +200,31 @@ export const lancamentoCaixaSchema = z.object({
   descricao: z.string().optional(),
 });
 export type LancamentoCaixaInput = z.infer<typeof lancamentoCaixaSchema>;
+
+// ----------------------- cliente / crediário -----------------------
+export const criarClienteSchema = z.object({
+  nome: z.string().min(1, 'Informe o nome do cliente'),
+  telefone: z.string().optional(),
+  email: z.string().optional(),
+  documento: z.string().optional(), // CPF/CNPJ
+  dataNascimento: z.string().optional(),
+  cep: z.string().optional(),
+  logradouro: z.string().optional(),
+  numero: z.string().optional(),
+  complemento: z.string().optional(),
+  bairro: z.string().optional(),
+  cidade: z.string().optional(),
+  uf: z.string().optional(),
+  limiteCreditoCentavos: centavos.optional(),
+  observacao: z.string().optional(),
+});
+export type CriarCliente = z.infer<typeof criarClienteSchema>;
+
+/** Quais campos do cliente são obrigatórios para vender no crediário. */
+export const configCrediarioSchema = z.object({
+  exigeCpf: z.boolean(),
+  exigeTelefone: z.boolean(),
+  exigeEndereco: z.boolean(),
+  exigeNascimento: z.boolean(),
+});
+export type ConfigCrediarioInput = z.infer<typeof configCrediarioSchema>;
