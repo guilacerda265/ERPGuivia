@@ -73,7 +73,7 @@ export function NovoProduto() {
     nomeDe(departamentos.data, departamentoId),
   ]
     .filter(Boolean)
-    .join(' - ');
+    .join(' ');
   useEffect(() => {
     if (!editouNome && nomeSugerido) setNome(nomeSugerido);
   }, [nomeSugerido, editouNome]);
