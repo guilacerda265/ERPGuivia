@@ -41,6 +41,7 @@ export function NovoProduto() {
   };
 
   const [nome, setNome] = useState('');
+  const [editouNome, setEditouNome] = useState(false);
   const [categoriaId, setCategoriaId] = useState('');
   const [marcaId, setMarcaId] = useState('');
   const [colecaoId, setColecaoId] = useState('');
@@ -63,6 +64,19 @@ export function NovoProduto() {
     if (!editouPreco) setPrecoVenda((sugeridoCentavos / 100).toFixed(2).replace('.', ','));
   }, [sugeridoCentavos, editouPreco]);
   const precoVendaCentavos = reaisParaCentavos(precoVenda);
+
+  // nome sugerido: marca - categoria - departamento (enquanto a loja não editar à mão)
+  const nomeDe = (lista: Opcao[] | undefined, id: string) => lista?.find((o) => o.id === id)?.nome;
+  const nomeSugerido = [
+    nomeDe(marcas.data, marcaId),
+    nomeDe(categorias.data, categoriaId),
+    nomeDe(departamentos.data, departamentoId),
+  ]
+    .filter(Boolean)
+    .join(' - ');
+  useEffect(() => {
+    if (!editouNome && nomeSugerido) setNome(nomeSugerido);
+  }, [nomeSugerido, editouNome]);
 
   const gradeSel = grades.data?.find((g) => g.id === gradeId);
   const totalVariacoes = coresSel.length * tamanhosSel.length;
@@ -131,7 +145,17 @@ export function NovoProduto() {
       {erro && <div className="mb-4 text-sm bg-rose-50 text-rose-600 rounded-xl px-4 py-3">{erro}</div>}
 
       <label className="text-sm font-medium text-stone-600">Nome do produto</label>
-      <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Camiseta Básica" className="mt-1 mb-5 w-full rounded-xl border border-stone-200 px-4 py-3 text-[15px] outline-none focus:border-brand focus:ring-1 focus:ring-brand" />
+      <input value={nome} onChange={(e) => { setEditouNome(true); setNome(e.target.value); }} placeholder="Escolha marca e categoria para sugerir" className="mt-1 w-full rounded-xl border border-stone-200 px-4 py-3 text-[15px] outline-none focus:border-brand focus:ring-1 focus:ring-brand" />
+      <div className="h-4 mt-1 mb-4 text-xs">
+        {editouNome && nomeSugerido && nomeSugerido !== nome.trim() && (
+          <span className="text-stone-400">
+            Sugestão: {nomeSugerido} ·{' '}
+            <button type="button" onClick={() => { setEditouNome(false); setNome(nomeSugerido); }} className="text-brand font-medium">
+              usar
+            </button>
+          </span>
+        )}
+      </div>
 
       <div className="grid sm:grid-cols-2 gap-4 mb-5">
         <SelectComCriar label="Categoria" obrigatorio opcoes={categorias.data} value={categoriaId} onChange={setCategoriaId} onCriar={criarRecurso('categorias')} />
