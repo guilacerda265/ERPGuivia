@@ -119,9 +119,10 @@ model Usuario {
   status    String   @default("ativo")
   createdAt DateTime @default(now())
 
-  tenant Tenant        @relation(fields: [tenantId], references: [id])
-  lojas  UsuarioLoja[]
-  vendas Venda[]
+  tenant    Tenant        @relation(fields: [tenantId], references: [id])
+  lojas     UsuarioLoja[]
+  vendas    Venda[]
+  auditLogs AuditLog[]
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -521,6 +522,27 @@ model ConfigCrediario {
   tenant          Tenant  @relation(fields: [tenantId], references: [id])
 
   @@map("config_crediario")
+}
+
+/// Trilha de auditoria: toda operação de escrita gravada automaticamente.
+model AuditLog {
+  id         String   @id @default(uuid(7))
+  tenantId   String
+  usuarioId  String?
+  metodo     String
+  caminho    String
+  entidade   String
+  acao       String
+  entidadeId String?
+  resumo     String
+  payload    Json?
+  createdAt  DateTime @default(now())
+
+  usuario Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, entidade])
+  @@map("audit_logs")
 }
 
 /// Conta a receber (crediário). Parcelas/recebimento entram na próxima parte.

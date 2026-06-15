@@ -7,6 +7,7 @@ import { SalesModule } from './sales/sales.module';
 import { CashierModule } from './cashier/cashier.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { CustomersModule } from './customers/customers.module';
+import { AuditModule } from './audit/audit.module';
 
 @Controller('health')
 class HealthController {
@@ -26,6 +27,7 @@ class HealthController {
     CashierModule,
     DashboardModule,
     CustomersModule,
+    AuditModule,
   ],
   controllers: [HealthController],
 })

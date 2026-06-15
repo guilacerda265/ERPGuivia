@@ -9,6 +9,7 @@ import { EditarProduto } from './pages/EditarProduto';
 import { Cadastros } from './pages/Cadastros';
 import { Clientes } from './pages/Clientes';
 import { ClienteForm } from './pages/ClienteForm';
+import { Auditoria } from './pages/Auditoria';
 import { Estoque } from './pages/Estoque';
 import { EntradaEstoque } from './pages/EntradaEstoque';
 import { Venda } from './pages/Venda';
@@ -40,6 +41,7 @@ export function App() {
         <Route path="/clientes" element={<Clientes />} />
         <Route path="/clientes/novo" element={<ClienteForm />} />
         <Route path="/clientes/:id" element={<ClienteForm />} />
+        <Route path="/auditoria" element={<Auditoria />} />
         <Route path="/estoque" element={<Estoque />} />
         <Route path="/estoque/entrada" element={<EntradaEstoque />} />
         <Route path="/vender" element={<Venda />} />
