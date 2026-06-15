@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type {
+  AtualizarProduto,
   CriarCategoria,
   CriarColecao,
   CriarDepartamento,
@@ -19,6 +20,11 @@ function ean13(base12: string): string {
   return base12 + String(check);
 }
 
+/** Extrai o número sequencial do código do produto (P00007 -> 7). */
+function seqDoCodigo(codigo: string | null): number {
+  return parseInt((codigo ?? '').replace(/\D/g, ''), 10) || 0;
+}
+
 @Injectable()
 export class CatalogService {
   constructor(private readonly prisma: PrismaService) {}
@@ -32,6 +38,13 @@ export class CatalogService {
       data: { tenantId, nome: dto.nome, tipoModa: dto.tipoModa, parentId: dto.parentId },
     });
   }
+  async atualizarCategoria(tenantId: string, id: string, dto: CriarCategoria) {
+    await this.prisma.categoria.updateMany({
+      where: { id, tenantId },
+      data: { nome: dto.nome, tipoModa: dto.tipoModa },
+    });
+    return this.prisma.categoria.findFirst({ where: { id, tenantId } });
+  }
 
   // ---- marcas ----
   listarMarcas(tenantId: string) {
@@ -39,6 +52,10 @@ export class CatalogService {
   }
   criarMarca(tenantId: string, dto: CriarMarca) {
     return this.prisma.marca.create({ data: { tenantId, nome: dto.nome } });
+  }
+  async atualizarMarca(tenantId: string, id: string, dto: CriarMarca) {
+    await this.prisma.marca.updateMany({ where: { id, tenantId }, data: { nome: dto.nome } });
+    return this.prisma.marca.findFirst({ where: { id, tenantId } });
   }
 
   // ---- coleções ----
@@ -50,6 +67,13 @@ export class CatalogService {
       data: { tenantId, nome: dto.nome, ano: dto.ano, estacao: dto.estacao },
     });
   }
+  async atualizarColecao(tenantId: string, id: string, dto: CriarColecao) {
+    await this.prisma.colecao.updateMany({
+      where: { id, tenantId },
+      data: { nome: dto.nome, ano: dto.ano, estacao: dto.estacao },
+    });
+    return this.prisma.colecao.findFirst({ where: { id, tenantId } });
+  }
 
   // ---- departamentos ----
   listarDepartamentos(tenantId: string) {
@@ -57,6 +81,10 @@ export class CatalogService {
   }
   criarDepartamento(tenantId: string, dto: CriarDepartamento) {
     return this.prisma.departamento.create({ data: { tenantId, nome: dto.nome } });
+  }
+  async atualizarDepartamento(tenantId: string, id: string, dto: CriarDepartamento) {
+    await this.prisma.departamento.updateMany({ where: { id, tenantId }, data: { nome: dto.nome } });
+    return this.prisma.departamento.findFirst({ where: { id, tenantId } });
   }
 
   // ---- produtos ----
@@ -134,6 +162,62 @@ export class CatalogService {
 
       return tx.produto.findUnique({
         where: { id: produto.id },
+        include: { variacoes: { orderBy: [{ cor: 'asc' }, { tamanho: 'asc' }] } },
+      });
+    });
+  }
+
+  /** Atualiza os campos do produto e a grade (edita/desativa existentes, cria novas). */
+  async atualizarProduto(tenantId: string, id: string, dto: AtualizarProduto) {
+    return this.prisma.comTenant(tenantId, async (tx) => {
+      const existe = await tx.produto.findFirst({ where: { id, tenantId } });
+      if (!existe) throw new NotFoundException('Produto não encontrado.');
+
+      await tx.produto.update({
+        where: { id },
+        data: {
+          nome: dto.nome,
+          categoriaId: dto.categoriaId,
+          marcaId: dto.marcaId,
+          colecaoId: dto.colecaoId,
+          departamentoId: dto.departamentoId,
+          custoCompraCentavos: dto.custoCompraCentavos,
+          markupPercentual: dto.markupPercentual,
+          precoBaseCentavos: dto.precoBaseCentavos,
+        },
+      });
+
+      const seq = seqDoCodigo(existe.codigo);
+      let idx = await tx.variacao.count({ where: { produtoId: id } });
+
+      for (const v of dto.variacoes) {
+        if (v.id) {
+          await tx.variacao.update({
+            where: { id: v.id },
+            data: {
+              ativo: v.ativo,
+              ...(v.codigoBarras?.trim() ? { codigoBarras: v.codigoBarras.trim() } : {}),
+            },
+          });
+        } else {
+          idx++;
+          const codigoGrade = `${existe.codigo ?? 'P'}-${String(idx).padStart(2, '0')}`;
+          const base12 = '2' + String(seq).padStart(8, '0') + String(idx).padStart(3, '0');
+          await tx.variacao.create({
+            data: {
+              tenantId,
+              produtoId: id,
+              cor: v.cor,
+              tamanho: v.tamanho,
+              skuInterno: codigoGrade,
+              codigoBarras: v.codigoBarras?.trim() || ean13(base12),
+            },
+          });
+        }
+      }
+
+      return tx.produto.findUnique({
+        where: { id },
         include: { variacoes: { orderBy: [{ cor: 'asc' }, { tamanho: 'asc' }] } },
       });
     });

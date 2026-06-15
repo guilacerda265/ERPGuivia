@@ -102,6 +102,28 @@ export const criarProdutoSchema = z.object({
 });
 export type CriarProduto = z.infer<typeof criarProdutoSchema>;
 
+/** Variação na edição: com id = existente (atualiza); sem id = nova. */
+export const variacaoUpdateSchema = z.object({
+  id: z.string().uuid().optional(),
+  cor: z.string().min(1),
+  tamanho: z.string().min(1),
+  codigoBarras: z.string().optional(),
+  ativo: z.boolean().default(true),
+});
+
+export const atualizarProdutoSchema = z.object({
+  nome: z.string().min(1, 'Informe o nome do produto'),
+  categoriaId: z.string().uuid('Escolha a categoria'),
+  marcaId: z.string().uuid('Escolha a marca'),
+  colecaoId: z.string().uuid().optional(),
+  departamentoId: z.string().uuid().optional(),
+  custoCompraCentavos: centavos.default(0),
+  markupPercentual: z.number().int().min(0).default(0),
+  precoBaseCentavos: centavos,
+  variacoes: z.array(variacaoUpdateSchema).min(1, 'O produto precisa de ao menos uma variação'),
+});
+export type AtualizarProduto = z.infer<typeof atualizarProdutoSchema>;
+
 /** Preço sugerido a partir do custo e do markup (em %). */
 export function precoSugeridoCentavos(custoCentavos: number, markupPercentual: number): number {
   return Math.round(custoCentavos * (1 + markupPercentual / 100));

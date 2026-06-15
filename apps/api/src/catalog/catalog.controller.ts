@@ -1,10 +1,12 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import {
+  atualizarProdutoSchema,
   criarCategoriaSchema,
   criarColecaoSchema,
   criarDepartamentoSchema,
   criarMarcaSchema,
   criarProdutoSchema,
+  type AtualizarProduto,
   type CriarCategoria,
   type CriarColecao,
   type CriarDepartamento,
@@ -32,6 +34,14 @@ export class CatalogController {
   ) {
     return this.catalog.criarCategoria(u.tenantId, dto);
   }
+  @Put('categorias/:id')
+  atualizarCategoria(
+    @CurrentUser() u: AuthUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(criarCategoriaSchema)) dto: CriarCategoria,
+  ) {
+    return this.catalog.atualizarCategoria(u.tenantId, id, dto);
+  }
 
   @Get('marcas')
   listarMarcas(@CurrentUser() u: AuthUser) {
@@ -43,6 +53,14 @@ export class CatalogController {
     @Body(new ZodValidationPipe(criarMarcaSchema)) dto: CriarMarca,
   ) {
     return this.catalog.criarMarca(u.tenantId, dto);
+  }
+  @Put('marcas/:id')
+  atualizarMarca(
+    @CurrentUser() u: AuthUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(criarMarcaSchema)) dto: CriarMarca,
+  ) {
+    return this.catalog.atualizarMarca(u.tenantId, id, dto);
   }
 
   @Get('colecoes')
@@ -56,6 +74,14 @@ export class CatalogController {
   ) {
     return this.catalog.criarColecao(u.tenantId, dto);
   }
+  @Put('colecoes/:id')
+  atualizarColecao(
+    @CurrentUser() u: AuthUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(criarColecaoSchema)) dto: CriarColecao,
+  ) {
+    return this.catalog.atualizarColecao(u.tenantId, id, dto);
+  }
 
   @Get('departamentos')
   listarDepartamentos(@CurrentUser() u: AuthUser) {
@@ -67,6 +93,14 @@ export class CatalogController {
     @Body(new ZodValidationPipe(criarDepartamentoSchema)) dto: CriarDepartamento,
   ) {
     return this.catalog.criarDepartamento(u.tenantId, dto);
+  }
+  @Put('departamentos/:id')
+  atualizarDepartamento(
+    @CurrentUser() u: AuthUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(criarDepartamentoSchema)) dto: CriarDepartamento,
+  ) {
+    return this.catalog.atualizarDepartamento(u.tenantId, id, dto);
   }
 
   @Get('produtos')
@@ -83,5 +117,13 @@ export class CatalogController {
     @Body(new ZodValidationPipe(criarProdutoSchema)) dto: CriarProduto,
   ) {
     return this.catalog.criarProduto(u.tenantId, dto);
+  }
+  @Put('produtos/:id')
+  atualizarProduto(
+    @CurrentUser() u: AuthUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(atualizarProdutoSchema)) dto: AtualizarProduto,
+  ) {
+    return this.catalog.atualizarProduto(u.tenantId, id, dto);
   }
 }

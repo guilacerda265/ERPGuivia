@@ -40,9 +40,14 @@ export function ProdutoDetalhe() {
   return (
     <div className="p-5 lg:p-8 max-w-3xl">
       <Link to="/produtos" className="text-stone-400 text-sm">← Produtos</Link>
-      <div className="flex items-start justify-between mt-2 mb-1">
+      <div className="flex items-start justify-between mt-2 mb-1 gap-3">
         <h1 className="text-2xl font-bold tracking-tight">{data.nome}</h1>
-        <span className="text-xs font-mono bg-stone-100 rounded-lg px-2 py-1">{data.codigo ?? '—'}</span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs font-mono bg-stone-100 rounded-lg px-2 py-1">{data.codigo ?? '—'}</span>
+          <Link to={`/produtos/${data.id}/editar`} className="text-xs font-semibold bg-brand text-white rounded-lg px-3 py-1.5">
+            Editar
+          </Link>
+        </div>
       </div>
       <div className="flex flex-wrap gap-2 mb-5">
         {chips.map((c) => (
